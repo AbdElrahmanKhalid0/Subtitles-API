@@ -123,21 +123,21 @@ class Subtitle:
         # the following RegEx are for finding the blueray or the blue-ray
         if "trailer" in sub_title.lower():
             return "trailer"
-        elif re.compile("blu?[\s\S]ray").match(sub_title, re.IGNORECASE):
-            return "blueray"
-        elif re.compile("hd?[\s\S]rip").match(sub_title, re.IGNORECASE):
+        elif re.compile(".*blu?[\s\S]ray.*").match(sub_title.lower()):
+            return "bluray"
+        elif re.compile(".*hd?[\s\S]rip.*").match(sub_title.lower()):
             return "hdrip"
-        elif re.compile("web?[\s\S]dl").match(sub_title, re.IGNORECASE):
+        elif re.compile(".*web?[\s\S]dl.*").match(sub_title.lower()):
             return "web-dl"
-        elif re.compile("hd?[\s\S]ts").match(sub_title, re.IGNORECASE):
+        elif re.compile(".*hd?[\s\S]ts.*").match(sub_title.lower()):
             return "hd-ts"
-        elif re.compile("hd?[\s\S]tc").match(sub_title, re.IGNORECASE):
+        elif re.compile(".*hd?[\s\S]tc.*").match(sub_title.lower()):
             return "hd-tc"
-        elif re.compile("web?[\s\S]rip").match(sub_title, re.IGNORECASE):
+        elif re.compile(".*web?[\s\S]rip.*").match(sub_title.lower()):
             return "webrip"
-        elif re.compile("br?[\s\S]rip").match(sub_title, re.IGNORECASE):
+        elif re.compile(".*br?[\s\S]rip.*").match(sub_title.lower()):
             return "brrip"
-        elif re.compile("bd?[\s\S]rip").match(sub_title, re.IGNORECASE):
+        elif re.compile(".*bd?[\s\S]rip.*").match(sub_title.lower()):
             return "bdrip"
         else:
             return None
