@@ -90,24 +90,6 @@ def get_exact_match(title: str, year: str) -> str:
     return match, url
 
 
-def search_by_title(title: str) -> list:
-    """gets the url to the title subtitle page, and returns None in case error happened"""
-    
-    # checking the type of the given title
-    if type(title) != str:
-        return None
-
-    page = requests.post(URL_SEARCH_BY_TITLE, {"query": title})
-    soup = BeautifulSoup(page.content, "html.parser")
-
-    # all matches
-    titles_subtitles_anchors = soup.find("div", class_="search-result").find_all("a")
-    titles_subtitles_links = [URL_SITE + anchor.get("href") for anchor in titles_subtitles_anchors]
-    
-    print(remove_dublicates(titles_subtitles_links))
-    # find
-
-
 class Subtitle:
     def __init__(self, htmlNode):
         self.setAttrs(htmlNode)
@@ -116,10 +98,11 @@ class Subtitle:
         self.link = URL_SITE + htmlNode.find("td", class_="a1").find("a")["href"]
         self.language = htmlNode.select("span.l.r")[0].text.strip()
         self.title = htmlNode.find_all("span")[1].text.strip()
-        self.kind = self.get_subtitle_kind(self.title)
+        self.format = self.get_subtitle_format(self.title)
 
-    def get_subtitle_kind(self, sub_title):
-        """gets the kind of the subtitle (bluray, hdrip, web-dl, trailer, ...)
+    @staticmethod
+    def get_subtitle_format(sub_title):
+        """gets the format of the subtitle (bluray, hdrip, web-dl, trailer, ...)
         and returns None in case of unknown type"""
         
         # the following RegEx are for finding the blueray or the blue-ray
@@ -162,7 +145,7 @@ def get_subtitles(title_page_url: str, languages: list = ['en']) -> list:
     return subtitles
     
 
-def get_subtitle(subtitile: Subtitle, location: str = ""):
+def get_subtitle(subtitile: Subtitle, location: str = "", keep_zip_file: bool = False):
     """gets the subtitle itself and saves it to a specific location,
     and returns True in case of succession"""
 
@@ -189,20 +172,46 @@ def get_subtitle(subtitile: Subtitle, location: str = ""):
     with zipfile.ZipFile(subtitile.title + ".zip", "r") as zip_file:
         zip_file.extractall(subtitile.title)
     
+    # removing the old zip file
+    if not keep_zip_file:
+        os.remove(subtitile.title + ".zip")
+
     return True
 
 
+def movie_subtitle(title: str, year: str, format: "format of movie (bluray, hdrip...)", location: str = "", keep_zip_file: bool = False):
+    """downloads a movie subtitle and saves it to the current location or to a
+    specified location, and returns True in case of succession and False in case
+    of problem existance"""
+
+    subtitles = get_subtitles(get_exact_match(title, year)[1])
+    subtitle = [subtitle for subtitle in subtitles if subtitle.format == Subtitle.get_subtitle_format(format)]
+    
+    # in case there wasn't any subtitle with the given information it will return False
+    # but if there was it will assign the subtitle to the first subtitle that matches
+    # the given information
+    if not subtitle:
+        print("Couldn't get any subtitle with the given information")
+        return False
+    else:
+        subtitle = subtitle[0]
+    
+    if get_subtitle(subtitle, location, keep_zip_file):
+        print("saved the subtitle successfully.")
+        return True
+    else:
+        return False
 
 def main():
     title = get_args(argv)
 
 
 if __name__ == "__main__":
+    movie_subtitle("whiplash", "2014", "bdrip")
     # main()
-    # search_by_title("avengers")
     # print(get_matches("avengers", search_type="popular"))
     # print(get_exact_match("avengers endgame", "2019"))
-    subtitles = get_subtitles(get_exact_match("avengers endgame", "2019")[1])
-    subtitle = [subtitle for subtitle in subtitles if subtitle.kind == "bluray"][0]
-    get_subtitle(subtitle)
+    # subtitles = get_subtitles(get_exact_match("avengers endgame", "2019")[1])
+    # subtitle = [subtitle for subtitle in subtitles if subtitle.format == "bluray"][0]
+    # get_subtitle(subtitle)
     # print(get_year("Avengers: Endgame (2019)"))
