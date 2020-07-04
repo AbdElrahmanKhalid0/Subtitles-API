@@ -13,21 +13,30 @@ URL_SEARCH_BY_TITLE = f"{URL_SITE}/subtitles/searchbytitle"
 def get_args(argv: list):
     """gets the args and dictionarize them"""
 
-    if len(argv) not in [3,5]:
+    if len(argv) not in [5,7]:
         Errors.args_error()
     
     data = {}
     # getting the type of the title
     if "-" in argv[1]:
-            data["type"] = "series" if argv[1] == "-s" else "movie"
+            data["type"] = "series" if argv[1] == "-s" else "movie" if argv[1] == "-m" else None
     else:
         Errors.args_error()
     
     # getting the title itself
     data["title"] = argv[2]
+
+    data["format"] = argv[3]
+    data["language"] = argv[4]
     if data["type"] == "series":
-        data["season"] = argv[3]
-        data["episode"] = argv[4]
+        if len(argv) != 7:
+            Errors.args_error()
+            
+        try:
+            data["season"] = int(argv[5])
+            data["episode"] = int(argv[6])
+        except:
+            Errors.args_error()
     
     return data
 
@@ -74,7 +83,7 @@ def get_year(text: str) -> str:
     return text[text.find("(") + 1: text.find(")")]
 
 
-def get_exact_match(title: str, year: str) -> str:
+def get_exact_match(title: str, year: str = "") -> str:
     """gets the exact match of a search query if it does exist and its page url"""
     
     matches = get_matches(title, search_type="exact", backup_search_type="close")
@@ -82,8 +91,11 @@ def get_exact_match(title: str, year: str) -> str:
     if not matches:
         return None
     
-    matches_by_year = [match for match in matches.keys() if get_year(match) == year]
-    match = matches_by_year[0] if len(matches_by_year) else None
+    if year:
+        matches_by_year = [match for match in matches.keys() if get_year(match) == year]
+        match = matches_by_year[0] if len(matches_by_year) else None
+    else:
+        match = matches[0]
 
     url = matches[match]
 
@@ -178,6 +190,7 @@ def get_subtitle(subtitile: Subtitle, location: str = "", keep_zip_file: bool = 
 
     page = requests.get(subtitile.link)
     soup = BeautifulSoup(page.content, "html.parser")
+    check_soup(soup, "To many requests", "Too many requests error")
 
     download_link = URL_SITE + soup.find("a", {"id":"downloadButton"})["href"]
 
@@ -198,7 +211,7 @@ def get_subtitle(subtitile: Subtitle, location: str = "", keep_zip_file: bool = 
     return True
 
 
-def movie_subtitle(title: str, year: str, language: str, format: "format of movie (bluray, hdrip...)", location: str = "", keep_zip_file: bool = False):
+def movie_subtitle(title: str, language: str, format: "format of movie (bluray, hdrip...)", year: str = "", location: str = "", keep_zip_file: bool = False):
     """downloads a movie subtitle and saves it to the current location or to a
     specified location, and returns True in case of succession and False in case
     of problem existance"""
@@ -280,14 +293,16 @@ def series_subtitle(title: str, season: int, episode: int, language: str, format
     else:
         return False
 
+
+def main():
+    data = get_args(argv)
+    if data["type"] == "movie":
+        movie_subtitle(data["title"], data["language"], data["format"])
+    elif data["type"] == "series":
+        series_subtitle(data["title"], data["season"], data["episode"], data["language"], data["format"])
+    else:
+        Errors.args_error()
+
+
 if __name__ == "__main__":
-    # movie_subtitle("whiplash", "2014", "english", "bdrip")
-    # print(get_matches_series("westworld"))
-    series_subtitle("westworld", 3, 1, "arabic", "webdl")
-    # print(ordinalText_to_int("eighth"))
-    # print(get_matches("avengers", search_type="popular"))
-    # print(get_exact_match("avengers endgame", "2019"))
-    # subtitles = get_subtitles(get_exact_match("avengers endgame", "2019")[1])
-    # subtitle = [subtitle for subtitle in subtitles if subtitle.format == "bluray"][0]
-    # get_subtitle(subtitle)
-    # print(get_year("Avengers: Endgame (2019)"))
+    main()
