@@ -91,7 +91,8 @@ def get_exact_match(title: str, year: str) -> str:
 
 
 class Subtitle:
-    def __init__(self, htmlNode):
+    def __init__(self, htmlNode, subtitle_type: "the type of subtitle (series, movie)" = "movie"):
+        self.subtitle_type = subtitle_type
         self.setAttrs(htmlNode)
 
     def setAttrs(self, htmlNode):
@@ -99,36 +100,51 @@ class Subtitle:
         self.language = htmlNode.select("span.l.r")[0].text.strip()
         self.title = htmlNode.find_all("span")[1].text.strip()
         self.format = self.get_subtitle_format(self.title)
+        if self.subtitle_type == "series":
+            self.setAttrsSeries(self.title)
+
+    def setAttrsSeries(self, subtitle_title):
+        """sets the season and the episode of the series"""
+
+        match = re.search("s[0]?[0-9]e[0]?[0-9]", subtitle_title, re.IGNORECASE)
+        if match:
+            info = match.group().lower()
+            self.season = int(info[info.find("s") + 1 : info.find("e")])
+            self.episode = int(info[info.find("e") + 1 :])
 
     @staticmethod
-    def get_subtitle_format(sub_title):
+    def get_subtitle_format(subtitle_title):
         """gets the format of the subtitle (bluray, hdrip, web-dl, trailer, ...)
         and returns None in case of unknown type"""
         
         # the following RegEx are for finding the blueray or the blue-ray
-        if "trailer" in sub_title.lower():
+        if "trailer" in subtitle_title.lower():
             return "trailer"
-        elif re.compile(".*blu?[\s\S]ray.*").match(sub_title.lower()):
+        elif re.compile(".*blu[\s\S]?ray.*").match(subtitle_title.lower()):
             return "bluray"
-        elif re.compile(".*hd?[\s\S]rip.*").match(sub_title.lower()):
+        elif re.compile(".*hd[\s\S]?rip.*").match(subtitle_title.lower()):
             return "hdrip"
-        elif re.compile(".*web?[\s\S]dl.*").match(sub_title.lower()):
+        elif re.compile(".*web[\s\S]?dl.*").match(subtitle_title.lower()):
             return "web-dl"
-        elif re.compile(".*hd?[\s\S]ts.*").match(sub_title.lower()):
+        elif re.compile(".*hd[\s\S]?ts.*").match(subtitle_title.lower()):
             return "hd-ts"
-        elif re.compile(".*hd?[\s\S]tc.*").match(sub_title.lower()):
+        elif re.compile(".*hd[\s\S]?tc.*").match(subtitle_title.lower()):
             return "hd-tc"
-        elif re.compile(".*web?[\s\S]rip.*").match(sub_title.lower()):
+        elif re.compile(".*web[\s\S]?rip.*").match(subtitle_title.lower()):
             return "webrip"
-        elif re.compile(".*br?[\s\S]rip.*").match(sub_title.lower()):
+        elif re.compile(".*br[\s\S]?rip.*").match(subtitle_title.lower()):
             return "brrip"
-        elif re.compile(".*bd?[\s\S]rip.*").match(sub_title.lower()):
+        elif re.compile(".*bd[\s\S]?rip.*").match(subtitle_title.lower()):
             return "bdrip"
+        elif re.compile(".*hd[\s\S]?tv.*").match(subtitle_title.lower()):
+            return "hdtv"
+        elif re.compile(".*web.*").match(subtitle_title.lower()):
+            return "web"
         else:
             return None
-        
 
-def get_subtitles(title_page_url: str, languages: list = ['en']) -> list:
+
+def get_subtitles(title_page_url: str) -> list:
     """gets the subtitles from a specific title page"""
 
     page = requests.get(title_page_url)
@@ -208,6 +224,9 @@ def get_matches_series(title: str, specific_sub_title: str = "") -> list:
     or gets a specific version (specific title of the series)"""
 
     all_matches = get_matches(title, "tv-series")
+    if not all_matches:
+        return None
+
     # the "{title} - SEASON" is the format that subscene follows in series titles
     if not specific_sub_title:
         matches = [{match: all_matches[match]} for match in all_matches.keys() if f"{title} - " in match.lower() and "season" in match.lower()]
@@ -218,9 +237,12 @@ def get_matches_series(title: str, specific_sub_title: str = "") -> list:
 
 
 def get_series_season(title: str, season: int) -> dict:
-    """gets a season of a series subtitles page link"""
+    """gets a series subtitles page link of the specified season"""
 
     matches = get_matches_series(title)
+    if not matches:
+        return None
+
     for match in matches:
         key = list(match.keys())[0]
         # getting the season ordinal number only
@@ -228,20 +250,16 @@ def get_series_season(title: str, season: int) -> dict:
         if season == ordinalText_to_int(ordinal_season_number):
             return match
     
-    return False
+    return None
 
 
-
-def main():
-    title = get_args(argv)
 
 
 if __name__ == "__main__":
     # movie_subtitle("whiplash", "2014", "english", "bdrip")
     # print(get_matches_series("westworld"))
-    print(get_series_season("westworld", 3))
+    print(get_series_season("the simpsons", 31))
     # print(ordinalText_to_int("eighth"))
-    # main()
     # print(get_matches("avengers", search_type="popular"))
     # print(get_exact_match("avengers endgame", "2019"))
     # subtitles = get_subtitles(get_exact_match("avengers endgame", "2019")[1])
