@@ -1,5 +1,7 @@
 import requests
 import re
+import os
+import zipfile
 from bs4 import BeautifulSoup
 from sys import argv, exit
 from Errors import Errors
@@ -160,6 +162,36 @@ def get_subtitles(title_page_url: str, languages: list = ['en']) -> list:
     return subtitles
     
 
+def get_subtitle(subtitile: Subtitle, location: str = ""):
+    """gets the subtitle itself and saves it to a specific location,
+    and returns True in case of succession"""
+
+    # write to the current location if there was no specified location
+    # if there was a one write to it
+    if location:
+        try:
+            os.chdir(location)
+        except:
+            Errors.location_error()
+
+    page = requests.get(subtitile.link)
+    soup = BeautifulSoup(page.content, "html.parser")
+
+    download_link = URL_SITE + soup.find("a", {"id":"downloadButton"})["href"]
+
+    # getting the file and writing it to the disk
+    subtitle_zip_file = requests.get(download_link, allow_redirects=True)
+    with open(subtitile.title + ".zip", "wb") as file:
+        file.write(subtitle_zip_file.content)
+    
+    # unzipping the subtitle zip file and putting the subtitles in a file with the same name
+    # as the subtitle title and the zip file name
+    with zipfile.ZipFile(subtitile.title + ".zip", "r") as zip_file:
+        zip_file.extractall(subtitile.title)
+    
+    return True
+
+
 
 def main():
     title = get_args(argv)
@@ -170,5 +202,7 @@ if __name__ == "__main__":
     # search_by_title("avengers")
     # print(get_matches("avengers", search_type="popular"))
     # print(get_exact_match("avengers endgame", "2019"))
-    get_subtitles(get_exact_match("avengers endgame", "2019")[1])
+    subtitles = get_subtitles(get_exact_match("avengers endgame", "2019")[1])
+    subtitle = [subtitle for subtitle in subtitles if subtitle.kind == "bluray"][0]
+    get_subtitle(subtitle)
     # print(get_year("Avengers: Endgame (2019)"))
