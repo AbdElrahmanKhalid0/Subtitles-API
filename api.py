@@ -179,13 +179,13 @@ def get_subtitle(subtitile: Subtitle, location: str = "", keep_zip_file: bool = 
     return True
 
 
-def movie_subtitle(title: str, year: str, format: "format of movie (bluray, hdrip...)", location: str = "", keep_zip_file: bool = False):
+def movie_subtitle(title: str, year: str, language: str, format: "format of movie (bluray, hdrip...)", location: str = "", keep_zip_file: bool = False):
     """downloads a movie subtitle and saves it to the current location or to a
     specified location, and returns True in case of succession and False in case
     of problem existance"""
 
     subtitles = get_subtitles(get_exact_match(title, year)[1])
-    subtitle = [subtitle for subtitle in subtitles if subtitle.format == Subtitle.get_subtitle_format(format)]
+    subtitle = [subtitle for subtitle in subtitles if subtitle.language.lower() == language and subtitle.format == Subtitle.get_subtitle_format(format)]
     
     # in case there wasn't any subtitle with the given information it will return False
     # but if there was it will assign the subtitle to the first subtitle that matches
@@ -207,7 +207,7 @@ def main():
 
 
 if __name__ == "__main__":
-    movie_subtitle("whiplash", "2014", "bdrip")
+    movie_subtitle("whiplash", "2014", "english", "bdrip")
     # main()
     # print(get_matches("avengers", search_type="popular"))
     # print(get_exact_match("avengers endgame", "2019"))
