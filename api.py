@@ -39,7 +39,7 @@ def get_matches(title: str, search_type: str = "all", backup_search_type: str = 
 
     page = requests.post(URL_SEARCH_BY_TITLE, {"query": title})
     soup = BeautifulSoup(page.content, "html.parser")
-    # check_soup(soup)
+    check_soup(soup, "To many requests", "Too many requests error")
     
     # getting all the titles in the search page
     if search_type == "all":
@@ -133,7 +133,7 @@ def get_subtitles(title_page_url: str, languages: list = ['en']) -> list:
 
     page = requests.get(title_page_url)
     soup = BeautifulSoup(page.content, "html.parser")
-    check_soup(soup)
+    check_soup(soup, "To many requests", "Too many requests error")
 
     # getting the subtitles nodes and then removing the empty ones from it
     subtitles_nodes = soup.find("div", class_="content clearfix")\
@@ -202,12 +202,45 @@ def movie_subtitle(title: str, year: str, language: str, format: "format of movi
     else:
         return False
 
+
+def get_matches_series(title: str, specific_sub_title: str = "") -> list:
+    """gets the links of the subtitles of all the seasons of a series
+    or gets a specific version (specific title of the series)"""
+
+    all_matches = get_matches(title, "tv-series")
+    # the "{title} - SEASON" is the format that subscene follows in series titles
+    if not specific_sub_title:
+        matches = [{match: all_matches[match]} for match in all_matches.keys() if f"{title} - " in match.lower() and "season" in match.lower()]
+    else:
+        matches = [{match: all_matches[match]} for match in all_matches.keys() if f"{title} - {specific_sub_title}" in match.lower()]
+    
+    return matches
+
+
+def get_series_season(title: str, season: int) -> dict:
+    """gets a season of a series subtitles page link"""
+
+    matches = get_matches_series(title)
+    for match in matches:
+        key = list(match.keys())[0]
+        # getting the season ordinal number only
+        ordinal_season_number = key.lower().replace(f"{title.lower()} - ","").replace(" season","")
+        if season == ordinalText_to_int(ordinal_season_number):
+            return match
+    
+    return False
+
+
+
 def main():
     title = get_args(argv)
 
 
 if __name__ == "__main__":
-    movie_subtitle("whiplash", "2014", "english", "bdrip")
+    # movie_subtitle("whiplash", "2014", "english", "bdrip")
+    # print(get_matches_series("westworld"))
+    print(get_series_season("westworld", 3))
+    # print(ordinalText_to_int("eighth"))
     # main()
     # print(get_matches("avengers", search_type="popular"))
     # print(get_exact_match("avengers endgame", "2019"))
