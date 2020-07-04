@@ -111,6 +111,9 @@ class Subtitle:
             info = match.group().lower()
             self.season = int(info[info.find("s") + 1 : info.find("e")])
             self.episode = int(info[info.find("e") + 1 :])
+        else:
+            self.season = None
+            self.episode = None
 
     @staticmethod
     def get_subtitle_format(subtitle_title):
@@ -144,7 +147,7 @@ class Subtitle:
             return None
 
 
-def get_subtitles(title_page_url: str) -> list:
+def get_subtitles(title_page_url: str, subtitle_type: "the type of subtitle (series, movie)" = "movie") -> list:
     """gets the subtitles from a specific title page"""
 
     page = requests.get(title_page_url)
@@ -156,7 +159,7 @@ def get_subtitles(title_page_url: str) -> list:
         .find("table").find("tbody").find_all("tr")
     subtitles_nodes = [subtitle_node for subtitle_node in subtitles_nodes if subtitle_node.find("a")]
     
-    subtitles = [Subtitle(subtitle_node) for subtitle_node in subtitles_nodes]
+    subtitles = [Subtitle(subtitle_node, subtitle_type) for subtitle_node in subtitles_nodes]
 
     return subtitles
     
@@ -253,12 +256,34 @@ def get_series_season(title: str, season: int) -> dict:
     return None
 
 
+def series_subtitle(title: str, season: int, episode: int, language: str, format: "format of the episode (bluray, hdrip...)", location: str = "", keep_zip_file: bool = False):
+    """downloads a series episode subtitle and saves it to the current location or to a
+    specified location, and returns True in case of succession and False in case
+    of problem existance"""
 
+    # gets the subtitles link of a specific season of the series
+    subtitles = get_subtitles(list(get_series_season(title, season).values())[0], "series")
+    subtitle = [subtitle for subtitle in subtitles if subtitle.language.lower() == language and subtitle.format == Subtitle.get_subtitle_format(format) and subtitle.episode == episode and subtitle.season == season]
+    
+    # in case there wasn't any subtitle with the given information it will return False
+    # but if there was it will assign the subtitle to the first subtitle that matches
+    # the given information
+    if not subtitle:
+        print("Couldn't get any subtitle with the given information")
+        return False
+    else:
+        subtitle = subtitle[0]
+    
+    if get_subtitle(subtitle, location, keep_zip_file):
+        print("saved the subtitle successfully.")
+        return True
+    else:
+        return False
 
 if __name__ == "__main__":
     # movie_subtitle("whiplash", "2014", "english", "bdrip")
     # print(get_matches_series("westworld"))
-    print(get_series_season("the simpsons", 31))
+    series_subtitle("westworld", 3, 1, "arabic", "webdl")
     # print(ordinalText_to_int("eighth"))
     # print(get_matches("avengers", search_type="popular"))
     # print(get_exact_match("avengers endgame", "2019"))
