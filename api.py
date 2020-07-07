@@ -41,7 +41,7 @@ def get_args(argv: list):
     return data
 
 
-def get_matches(title: str, search_type: str = "all", backup_search_type: str = None) -> list:
+def get_matches(title: str, search_type: str = "all", backup_search_type: str = None) -> dict:
     """gets the search matches of the specified title, and can specify the type
     of the given search so it can be ('exact', 'close', 'popular', or 'all') and
     'all' is the default option"""
@@ -95,7 +95,7 @@ def get_exact_match(title: str, year: str = "") -> str:
         matches_by_year = [match for match in matches.keys() if get_year(match) == year]
         match = matches_by_year[0] if len(matches_by_year) else None
     else:
-        match = matches[0]
+        match = list(matches.keys())[0]
 
     url = matches[match]
 
